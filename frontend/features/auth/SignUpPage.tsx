@@ -5,33 +5,81 @@ import { useAuth } from '@/lib/providers/AuthProvider'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 
-export function LoginPage() {
-  const { signInWithGoogle, signInWithGitHub, signInWithEmail, loading } = useAuth()
+export function SignUpPage() {
+  const { signInWithGoogle, signInWithGitHub, signUpWithEmail, loading } = useAuth()
+  const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [success, setSuccess] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
+
+    if (password !== confirmPassword) {
+      setError('Las contraseñas no coinciden')
+      return
+    }
+
+    if (!acceptedTerms) {
+      setError('Debes aceptar los términos y condiciones')
+      return
+    }
+
+    if (password.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres')
+      return
+    }
+
     setIsSubmitting(true)
 
-    const { error } = await signInWithEmail(email, password)
+    const { error } = await signUpWithEmail(email, password, fullName)
     
     if (error) {
       setError(error.message)
+    } else {
+      setSuccess(true)
     }
     
     setIsSubmitting(false)
   }
 
+  if (success) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-80px)] bg-muted/30 px-4">
+        <div className="bg-card rounded-2xl shadow-sm border border-border p-8 sm:p-10 w-full max-w-md flex flex-col items-center gap-6 text-center">
+          <div className="w-14 h-14 bg-foreground rounded-xl flex items-center justify-center">
+            <img 
+              src="/assets/NeuroDatics-logo.svg" 
+              alt="NeuroDatics Logo" 
+              className="h-8 w-8 invert" 
+            />
+          </div>
+          <h1 className="text-2xl font-semibold text-foreground">¡Cuenta creada!</h1>
+          <p className="text-muted-foreground">
+            Hemos enviado un correo de verificación a <strong className="text-foreground">{email}</strong>. 
+            Por favor, revisa tu bandeja de entrada y confirma tu cuenta.
+          </p>
+          <Link href="/login">
+            <Button className="h-11">Ir a iniciar sesión</Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-80px)] bg-muted/30 px-4">
+    <div className="flex items-center justify-center min-h-[calc(100vh-80px)] bg-muted/30 px-4 py-8">
       <div className="bg-card rounded-2xl shadow-sm border border-border p-8 sm:p-10 w-full max-w-md flex flex-col items-center gap-6">
         {/* Logo and Header */}
         <div className="flex flex-col items-center gap-4">
@@ -44,21 +92,34 @@ export function LoginPage() {
           </div>
           <div className="text-center">
             <h1 className="text-2xl font-semibold text-foreground tracking-tight">
-              Acceder a NeuroDatics
+              Crear cuenta
             </h1>
             <p className="text-sm text-muted-foreground mt-2 text-balance">
-              Inicia sesión para gestionar tus proyectos de neuromarketing y análisis de bioseñales.
+              Regístrate para comenzar a analizar bioseñales en tus proyectos de neuromarketing.
             </p>
           </div>
         </div>
 
-        {/* Login Form */}
+        {/* Sign Up Form */}
         <form onSubmit={handleSubmit} className="w-full flex flex-col gap-5">
           {error && (
             <div className="bg-destructive/10 text-destructive text-sm p-3 rounded-lg">
               {error}
             </div>
           )}
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="fullName">Nombre completo</Label>
+            <Input
+              id="fullName"
+              type="text"
+              placeholder="Juan Pérez"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              required
+              className="h-11"
+            />
+          </div>
 
           <div className="flex flex-col gap-2">
             <Label htmlFor="email">Correo electrónico</Label>
@@ -93,14 +154,47 @@ export function LoginPage() {
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            <div className="flex justify-end">
-              <Link 
-                href="/forgot-password" 
-                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="confirmPassword">Confirmar contraseña</Label>
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                className="h-11 pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
               >
-                ¿Olvidaste tu contraseña?
-              </Link>
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
+          </div>
+
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="terms"
+              checked={acceptedTerms}
+              onCheckedChange={(checked) => setAcceptedTerms(checked === true)}
+              className="mt-0.5"
+            />
+            <label htmlFor="terms" className="text-sm text-muted-foreground leading-relaxed">
+              Acepto los{' '}
+              <Link href="/terms" className="text-foreground hover:underline font-medium">
+                Términos y Condiciones
+              </Link>{' '}
+              y la{' '}
+              <Link href="/privacy" className="text-foreground hover:underline font-medium">
+                Política de Privacidad
+              </Link>
+            </label>
           </div>
 
           <Button
@@ -108,7 +202,7 @@ export function LoginPage() {
             disabled={loading || isSubmitting}
             className="w-full h-11 bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            Continuar
+            Crear cuenta
           </Button>
         </form>
 
@@ -116,7 +210,7 @@ export function LoginPage() {
         <div className="w-full flex items-center gap-4">
           <div className="flex-1 h-px bg-border" />
           <span className="text-xs text-muted-foreground uppercase tracking-wider">
-            O continúa con
+            O regístrate con
           </span>
           <div className="flex-1 h-px bg-border" />
         </div>
@@ -168,11 +262,11 @@ export function LoginPage() {
           </Button>
         </div>
 
-        {/* Sign Up Link */}
+        {/* Login Link */}
         <p className="text-sm text-muted-foreground">
-          ¿No tienes una cuenta?{' '}
-          <Link href="/signup" className="font-medium text-foreground hover:underline">
-            Crear cuenta
+          ¿Ya tienes una cuenta?{' '}
+          <Link href="/login" className="font-medium text-foreground hover:underline">
+            Iniciar sesión
           </Link>
         </p>
       </div>
