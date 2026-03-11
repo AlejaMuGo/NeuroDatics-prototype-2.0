@@ -11,7 +11,7 @@ export const HeroSection = () => {
           alt="NeuroDatics Logo"
           width={96}
           height={96}
-          className="h-24 w-auto transition-transform hover:scale-105"
+          className="h-24 w-24 transition-transform hover:scale-105"
         />
       </div>
 
